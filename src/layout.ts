@@ -8,8 +8,8 @@ const GAP = 96;
 export const CAP = 46; // caption strip under each film
 
 const ORDER = [
-  "slate", "saas-drift", "madoff", "short-a", "route-hub", "saas-wander", "reddit", "kinetic-interview", "about",
-  "ten-million", "short-b", "volkswagen", "saas-sprout", "cold-email", "news-launch", "contact", "tudor-jones",
+  "slate", "saas-holo", "madoff", "short-a", "saas-tally", "route-hub", "saas-drift", "reddit", "kinetic-interview", "about",
+  "ten-million", "short-b", "saas-wander", "volkswagen", "cold-email", "saas-sprout", "news-launch", "contact", "tudor-jones",
   "short-c", "thousand-demos", "dropshipping", "vibescaling", "nine-to-five",
 ];
 const CARD_H = { slate: 0.8, about: 0.92, contact: 0.84 };

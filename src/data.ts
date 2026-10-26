@@ -18,6 +18,8 @@ export type Card = { type: "card"; id: "slate" | "about" | "contact" };
 export type Piece = Film | Card;
 
 export const films: Film[] = [
+  { type: "film", id: "saas-holo", title: "Holo", tag: "Spec ad", cat: "saas", length: "0:36" },
+  { type: "film", id: "saas-tally", title: "Tally", tag: "Product launch", cat: "saas", length: "0:40" },
   { type: "film", id: "saas-drift", title: "Drift", tag: "Product launch", cat: "saas", length: "0:30" },
   { type: "film", id: "saas-wander", title: "Wander", tag: "Product launch", cat: "saas", length: "0:36" },
   { type: "film", id: "saas-sprout", title: "Sprout", tag: "Product launch", cat: "saas", length: "0:25" },
