@@ -51,16 +51,24 @@ export function ContactCard() {
   };
   return (
     <div className="card contact">
-      <small>Contact</small>
-      <h2>Got footage?<br /><i>Let's make it worth watching.</i></h2>
-      <div className="contact-btns">
-        <a className="cbtn solid" href={`mailto:${contact.email}?subject=${encodeURIComponent("Video editing enquiry")}`}>Email me</a>
-        <button className="cbtn" onClick={copy}>{copied ? "Copied ✓" : "Copy email"}</button>
-        <a className="cbtn" href={contact.whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>
+      <div>
+        <small className="avail"><span />Available for new projects</small>
+        <h2>Got footage?</h2>
+        <p className="contact-sub"><i>Let's make it worth watching.</i></p>
       </div>
-      <div className="contact-soc">
-        <a href={contact.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>
-        <a href={contact.instagram} target="_blank" rel="noreferrer">Instagram ↗</a>
+      <div className="contact-foot">
+        <button className="contact-mail" onClick={copy} title="Copy email">
+          <span>{contact.email}</span>
+          <em>{copied ? "Copied ✓" : "Copy"}</em>
+        </button>
+        <div className="contact-btns">
+          <a className="cbtn solid" href={`mailto:${contact.email}?subject=${encodeURIComponent("Video editing enquiry")}`}>Email me</a>
+          <a className="cbtn" href={contact.whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>
+        </div>
+        <div className="contact-soc">
+          <a href={contact.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>
+          <a href={contact.instagram} target="_blank" rel="noreferrer">Instagram ↗</a>
+        </div>
       </div>
     </div>
   );

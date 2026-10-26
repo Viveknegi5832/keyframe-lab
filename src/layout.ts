@@ -56,4 +56,5 @@ export const { placed, TW, TH } = build();
 export const SHIFT = Math.round(TW * 0.37);
 
 /** Table scale: smaller screens see the table from further away. */
-export const zoom = () => (innerWidth < 700 ? 0.6 : innerWidth < 1100 ? 0.8 : 1);
+export const zoom = () =>
+  innerWidth < 700 ? 0.6 : innerWidth < 1100 ? 0.8 : Math.min(1.35, Math.max(1, Math.min(innerWidth / 1600, innerHeight / 900)));

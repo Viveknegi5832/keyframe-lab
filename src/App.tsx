@@ -128,7 +128,6 @@ export default function App() {
         onOpen={(f) => { setHover(""); setOpen(list.findIndex((x) => x.id === f.id)); }}
         onHover={setHover}
       />
-      <div className="grain" aria-hidden />
 
       <header className={`hud-top${open !== null ? " hide" : ""}`}>
         <button className="brand" onClick={() => flyCard("slate")}>

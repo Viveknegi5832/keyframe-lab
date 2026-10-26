@@ -30,8 +30,10 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
   const stage = useRef<HTMLDivElement>(null);
   const world = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
-  const light = useRef<HTMLDivElement>(null);
-  const els = useRef(new Map<string, { el: HTMLDivElement; shade: HTMLElement | null; tf: string; z: string; op: string }>());
+  const torchEl = useRef<HTMLDivElement>(null);
+  // where the light points: follows the cursor, glides to the screen centre after a fly-to or on touch
+  const torch = useRef({ x: innerWidth / 2, y: innerHeight / 2, center: false });
+  const els = useRef(new Map<string, { el: HTMLDivElement; tf: string; z: string }>());
   const delays = useRef(new Map<string, string>());
   const instRef = useRef<Inst[]>([]);
   const [inst, setInst] = useState<Inst[]>([]);
@@ -69,7 +71,7 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
             }
           }
         }
-        if (best) { c.tx = best.x - innerWidth / 2 / z; c.ty = best.y - innerHeight / 2 / z; c.vx = c.vy = 0; }
+        if (best) { c.tx = best.x - innerWidth / 2 / z; c.ty = best.y - innerHeight / 2 / z; c.vx = c.vy = 0; torch.current.center = true; }
       },
       find(filmId) {
         let best: { d: number; el: HTMLDivElement; it: Placed } | null = null;
@@ -95,6 +97,7 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
     let lastKeys = "";
     let lastLive = "";
     let lastX = NaN, lastY = NaN, movedAt = 0, settledOnce = false;
+    let amp = 1; // strength of the lift/magnify effect: eases off while the table moves, so panning restyles nothing
     const tick = () => {
       const c = cam.current;
       const vw = innerWidth, vh = innerHeight;
@@ -115,6 +118,12 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
       if (c.x !== lastX || c.y !== lastY) { lastX = c.x; lastY = c.y; movedAt = now; settledOnce = false; }
       const settled = now - movedAt > SETTLE;
       if (settled && !settledOnce) { settledOnce = true; dirty.current = true; }
+      const ampTo = now - movedAt < 140 ? 0 : 1;
+      if (Math.abs(ampTo - amp) > 0.002) { amp += (ampTo - amp) * (ampTo ? 0.09 : 0.2); dirty.current = true; } else amp = ampTo;
+      const p = ptr.current, tr = torch.current;
+      const toCenter = p.touch || tr.center;
+      const lx = toCenter ? vw / 2 : p.x, ly = toCenter ? vh / 2 : p.y;
+      if (Math.abs(lx - tr.x) + Math.abs(ly - tr.y) > 0.5) { tr.x += (lx - tr.x) * 0.22; tr.y += (ly - tr.y) * 0.22; dirty.current = true; }
       if (dirty.current) {
         dirty.current = false;
         if (world.current) world.current.style.transform = `translate3d(${-c.x * z}px, ${-c.y * z}px, 0) scale(${z})`;
@@ -137,33 +146,28 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
         const keys = list.map((n) => n.key).join("|");
         if (keys !== lastKeys) { lastKeys = keys; instRef.current = list; setInst(list); }
 
-        const p = ptr.current;
-        const px = p.touch ? vw / 2 : p.x, py = p.touch ? vh / 2 : p.y;
-        const R = Math.max(380, vw * 0.3);
+        const px = tr.x, py = tr.y;
+        const R = Math.max(380, Math.min(vw, 1900) * 0.3);
         const cand: [number, string][] = [];
         for (const n of instRef.current) {
           const sx = (n.wx + n.it.w / 2 - c.x) * z, sy = (n.wy + n.it.h / 2 - c.y) * z;
-          // lit by the cursor, plus a softer fill at the centre of the screen so a fly-to target is never in the dark
-          const kp = Math.max(0, 1 - Math.hypot(sx - px, sy - py) / R);
-          const kc = Math.max(0, 1 - Math.hypot(sx - vw / 2, sy - vh / 2) / (R * 1.25)) * 0.8;
-          const k = Math.max(kp, kc);
-          const e = k * k * (3 - 2 * k);
+          const k = Math.max(0, 1 - Math.hypot(sx - px, sy - py) / R);
+          const e = k * k * (3 - 2 * k) * amp;
           const r = els.current.get(n.key);
           if (r) {
             // only touch the DOM when a value actually changes
             const tf = `rotate(${(n.it.rot * (1 - e)).toFixed(2)}deg) scale(${(1 + 0.09 * e).toFixed(3)})`;
             const zi = e > 0.4 ? "2" : "";
-            const op = (0.5 * (1 - e)).toFixed(2);
             if (tf !== r.tf) { r.tf = tf; r.el.style.transform = tf; }
             if (zi !== r.z) { r.z = zi; r.el.style.zIndex = zi; }
-            if (op !== r.op && r.shade) { r.op = op; r.shade.style.opacity = op; }
           }
           if (n.it.p.type === "film" && sx > 0 && sx < vw && sy > 0 && sy < vh) cand.push([Math.hypot(sx - vw / 2, sy - vh / 2), n.key]);
         }
         cand.sort((a, b) => a[0] - b[0]);
         const lv = cand.slice(0, LIVE).map((n) => n[1]).sort().join("|");
         if (settled && lv !== lastLive) { lastLive = lv; setLive(lv); }
-        if (light.current) light.current.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+        // one darkness layer with a soft hole replaces a shade on every print
+        if (torchEl.current) torchEl.current.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -216,6 +220,7 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
   };
   const move = (e: PointerEvent) => {
     ptr.current = { x: e.clientX, y: e.clientY, touch: e.pointerType !== "mouse" };
+    torch.current.center = false;
     dirty.current = true;
     const d = drag.current;
     if (!d) {
@@ -246,7 +251,7 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
   };
 
   const register = useCallback((key: string, el: HTMLDivElement | null) => {
-    if (el) { els.current.set(key, { el, shade: el.querySelector(".shade"), tf: "", z: "", op: "" }); dirty.current = true; }
+    if (el) { els.current.set(key, { el, tf: "", z: "" }); dirty.current = true; }
     else els.current.delete(key);
   }, []);
   const liveSet = new Set(live.split("|"));
@@ -262,7 +267,6 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
       onPointerLeave={() => setHover("")}
     >
       <div ref={grid} className="grid" aria-hidden />
-      <div ref={light} className="light" aria-hidden />
       <div ref={world} className="world">
         {inst.map((n) => {
           const p = n.it.p;
@@ -287,6 +291,7 @@ export function Table({ cam, api, filter, revealed, liftedId, active, onOpen, on
           );
         })}
       </div>
+      <div ref={torchEl} className="torch" aria-hidden />
     </div>
   );
 }
@@ -313,7 +318,6 @@ const Piece = memo(function Piece({ n, delay, dim, lifted, live, register }: Pie
             {live && <video src={loop(p.id)} autoPlay muted loop playsInline />}
           </>
         ) : p.id === "slate" ? <SlateCard /> : p.id === "about" ? <AboutCard /> : <ContactCard />}
-        <span className="shade" />
       </div>
       {isFilm && (
         <div className="cap">
